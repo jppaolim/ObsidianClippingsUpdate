@@ -1,0 +1,26 @@
+{
+  "name": "obisidianrepoupdate",
+  "version": "1.0.0",
+  "description": "to update my repo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jppaolim/ObisidianRepoUpdate.git"
+  },
+  "author": "jppaolim",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jppaolim/ObisidianRepoUpdate/issues"
+  },
+  "homepage": "https://github.com/jppaolim/ObisidianRepoUpdate#readme",
+  "dependencies": {
+    "@mozilla/readability": "^0.4.4",
+    "axios": "^1.5.0",
+    "glob": "^10.3.4",
+    "jsdom": "^22.1.0",
+    "turndown": "^7.1.2"
+  }
+}
