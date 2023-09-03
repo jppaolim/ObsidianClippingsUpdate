@@ -1,14 +1,67 @@
 const axios = require("axios");
 const jsdom = require("jsdom");
 const path = require("path");
-const url = require("url"); // Node's URL module
-
-const { JSDOM } = jsdom;
+const fs = require("fs");
 const TurndownService = require("turndown");
 const Readability = require("@mozilla/readability").Readability;
-
-const fs = require("fs");
 const { glob } = require("glob");
+const { JSDOM } = jsdom;
+
+// Read all markdown files in a directory and process them 
+async function processFiles() {
+
+  // Create subdirectories if they don't exist
+  if (!fs.existsSync("Ressources/Processed")) fs.mkdirSync("Ressources/Processed");
+  if (!fs.existsSync("Ressources/Result")) fs.mkdirSync("Ressources/Result");
+  if (!fs.existsSync("Ressources/ToProcessManually")) fs.mkdirSync("Ressources/ToProcessManually");
+
+  // Use glob with promises, no recursive
+  const files = await glob("Ressources/*.md");
+
+  try {
+
+    for (const file of files) {
+
+      const originalText = fs.readFileSync(file, "utf8");
+
+      
+      const url = extractURL(originalText);
+      
+      // we don't find any URL to download the source then we will manually process later
+      if (!url) {
+        console.log(`No URL found in file ${file}. Moving to ToProcessManually.`);
+        const newLocation = path.join("Ressources/ToProcessManually", path.basename(file));
+        fs.renameSync(file, newLocation);
+        continue;
+      }
+
+      // if we have an URL we download the source and convert it to markdown
+      const clippedDate = extractDate(originalText);
+      try {
+        const { fileContent, sanitizedTitle } = await pullMarkDown(
+          url,
+          clippedDate
+        );
+
+        // Move the original file to 'Processed' directory within 'Ressources'
+        const processedFileName = path.join("Ressources/Processed", path.basename(file));
+        fs.renameSync(file, processedFileName);
+
+        // Save the new content to a file in 'Result' directory within 'Ressources' with the same name
+        const resultFileName = path.join("Ressources/Result",path.basename(file));
+        fs.writeFileSync(resultFileName, fileContent);
+
+        console.log(`New file has been written to ${resultFileName}`);
+        console.log(`Original file has been moved to ${processedFileName}`);
+
+      } catch (error) {
+        logErrorToFile(`Failed to process URL ${url} from file ${file}: ${error}`); 
+      }
+    }
+  } catch (err) {
+    logErrorToFile("An error occurred:", err);
+  }
+}
 
 async function pullMarkDown(url, clippedDate) {
   const { data } = await axios.get(url);
@@ -30,7 +83,10 @@ async function pullMarkDown(url, clippedDate) {
     codeBlockStyle: "fenced",
     emDelimiter: "*",
   });
-  const markdownBody = turndownService.turndown(article.content);
+  
+  let markdownBody = turndownService.turndown(article.content);
+  markdownBody = fixMarkdownLinks(markdownBody);
+
 
   /// Handle Tags
   var tagLines = ["tags:"];
@@ -121,6 +177,13 @@ async function pullMarkDown(url, clippedDate) {
   return { fileContent, sanitizedTitle };
 }
 
+
+// Function to log errors to a file
+function logErrorToFile(error) {
+  const errorMessage = `[${new Date().toISOString()}] ${error}\n`;
+  fs.appendFileSync('error.log', errorMessage);
+}
+
 function extractURL(text) {
   // Match "URL", "source", "src", case-insensitive followed by any number of non-newline characters and then a URL
   // The URL can either be stand-alone or within a Markdown link
@@ -136,13 +199,17 @@ function extractURL(text) {
   }
 }
 
-
 function extractDate(text) {
   // Match "clipped:", "clipped::", "date", or "Date" followed by any number of characters and then the brackets with a date inside
   const regex =
     /(clipped:|clipped::|date|Date).*?\[\[([0-9]{4}-[0-9]{2}-[0-9]{2})\]\]/i;
   const match = text.match(regex);
   return match ? match[2] : null; // match[2] will contain the actual date if found
+}
+
+function fixMarkdownLinks(text) {
+  const regex = /\[\s*\n*!\[\](?:\()([^\)]+)(?:\))\s*\n*\]\(([^)]+)\)/g;
+  return text.replace(regex, "[![]($1)]($2)");
 }
 
 function convertDate(date) {
@@ -158,62 +225,6 @@ function convertDate(date) {
     "-" +
     (ddChars[1] ? dd : "0" + ddChars[0])
   );
-}
-
-// Read all markdown files in a directory
-async function processFiles() {
-  try {
-    // Create subdirectories if they don't exist
-    if (!fs.existsSync("Ressources/Processed"))
-      fs.mkdirSync("Ressources/Processed");
-    if (!fs.existsSync("Ressources/Result")) fs.mkdirSync("Ressources/Result");
-    if (!fs.existsSync("Ressources/ToProcess"))
-      fs.mkdirSync("Ressources/ToProcess");
-
-    // Use glob with promises
-    const files = await glob("Ressources/*.md");
-
-    for (const file of files) {
-      const originalText = fs.readFileSync(file, "utf8");
-      const url = extractURL(originalText);
-      const clippedDate = extractDate(originalText);
-
-      if (!url) {
-        console.log(`No URL found in file ${file}. Moving to ToProcess.`);
-        const newLocation = path.join("Ressources/ToProcess", path.basename(file));
-        fs.renameSync(file, newLocation);
-        continue;
-      }
-
-      try {
-        const { fileContent, sanitizedTitle } = await pullMarkDown(
-          url,
-          clippedDate
-        );
-
-        // Move the original file to 'Processed' directory within 'Ressources'
-        const processedFileName = path.join(
-          "Ressources/Processed",
-          path.basename(file)
-        );
-        fs.renameSync(file, processedFileName);
-
-        // Save the new content to a file in 'Result' directory within 'Ressources'
-        const resultFileName = path.join(
-          "Ressources/Result",
-          `${sanitizedTitle}.md`
-        );
-        fs.writeFileSync(resultFileName, fileContent);
-
-        console.log(`New file has been written to ${resultFileName}`);
-        console.log(`Original file has been moved to ${processedFileName}`);
-      } catch (error) {
-        console.error(`Failed to process URL ${url} from file ${file}`, error);
-      }
-    }
-  } catch (err) {
-    console.error("An error occurred:", err);
-  }
 }
 
 // Run the function
