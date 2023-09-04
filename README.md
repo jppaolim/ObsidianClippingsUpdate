@@ -18,16 +18,16 @@ published:: DateOfPublication
 #clippings
 ```
 
-But now you get :
-```js
+But now you want :
+```js 
 ---
 category: "[[Clippings]]"
-author: XXX
-title: Title scrapped from the Web 
+author: XXX scrapped from the META tags of the page at URL   
+title: Title scrapped from the META tags of the page at URL   
 source: URL link
 clipped: DateOfClipping
-description: Description taken from URL Scrapping
-summary: Some space to put the summary later 
+description: Description scrapped from the META tags of the page at URL   
+summary: ""  (Some space to put the summary later)
 tags:
   - AI
   - other tags taken from the META keyword tag
@@ -50,7 +50,7 @@ First remember to back up your vault before running.
 
 1. Place all the Markdown files you want to process in a  `Ressources` Subdirectory of your vault. Then do a symbolic link to this subdiretory from within the project repo : 
     ```bash
-    cd ObisidianRepoUpdate
+    cd ObsidianRepoUpdate
     ln -s -v  PATH_TO_YOUR_RESSOURCEDIR ./Ressources
     ```
 
