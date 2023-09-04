@@ -7,27 +7,31 @@ const Readability = require("@mozilla/readability").Readability;
 const { glob } = require("glob");
 const { JSDOM } = jsdom;
 
-// Read all markdown files in a directory and process them 
+/**
+ * Main function to process Markdown files by scraping corresponding URLs and updating content.
+ */
 async function processFiles() {
 
-  // Create subdirectories if they don't exist
+  // Create necessary subdirectories if they don't exist
   if (!fs.existsSync("Ressources/Processed")) fs.mkdirSync("Ressources/Processed");
   if (!fs.existsSync("Ressources/Result")) fs.mkdirSync("Ressources/Result");
   if (!fs.existsSync("Ressources/ToProcessManually")) fs.mkdirSync("Ressources/ToProcessManually");
 
-  // Use glob with promises, no recursive
+  // Get list of all markdown files to be processed
   const files = await glob("Ressources/*.md");
 
   try {
 
+    // Loop through each file and process it
     for (const file of files) {
 
+      // Read the original content of the file
       const originalText = fs.readFileSync(file, "utf8");
-
-      
+ 
+      // Extract URL from the markdown content
       const url = extractURL(originalText);
       
-      // we don't find any URL to download the source then we will manually process later
+      // If no URL is found, move file for manual processing
       if (!url) {
         console.log(`No URL found in file ${file}. Moving to ToProcessManually.`);
         const newLocation = path.join("Ressources/ToProcessManually", path.basename(file));
@@ -35,7 +39,7 @@ async function processFiles() {
         continue;
       }
 
-      // if we have an URL we download the source and convert it to markdown
+      // If a URL is found, fetch the article and update the markdown file
       const clippedDate = extractDate(originalText);
       try {
         const { fileContent, sanitizedTitle } = await pullMarkDown(
@@ -43,11 +47,11 @@ async function processFiles() {
           clippedDate
         );
 
-        // Move the original file to 'Processed' directory within 'Ressources'
+        // Move the original file to 'Processed' directory 
         const processedFileName = path.join("Ressources/Processed", path.basename(file));
         fs.renameSync(file, processedFileName);
 
-        // Save the new content to a file in 'Result' directory within 'Ressources' with the same name
+        // Write the new content to a file in the 'Result' directory
         const resultFileName = path.join("Ressources/Result",path.basename(file));
         fs.writeFileSync(resultFileName, fileContent);
 
