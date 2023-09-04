@@ -18,7 +18,7 @@ published:: DateOfPublication
 #clippings
 ```
 
-But now you want :
+But now you want something more like :
 ```js 
 ---
 category: "[[Clippings]]"
@@ -34,7 +34,7 @@ tags:
 publish: false
 ```
 
-
+Note that I have also updated the official webclipper to give a consistent result, here is my JS version :  [WebClipper](https://gist.github.com/jppaolim/97552a7c424a7ae5d2c17ce846eadeee   )  
 
 
 ## How to Install
