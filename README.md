@@ -1,4 +1,4 @@
-# Update your Obsidian clippings to properties
+# Update your Obsidian clippings to YAML
 
 ## Why This Code?
 
